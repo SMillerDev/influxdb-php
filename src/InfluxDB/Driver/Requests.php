@@ -10,6 +10,7 @@ use \InfluxDB\ResultSet;
 use \Requests_Session;
 use \Requests_Response;
 use \Requests_Exception;
+use \Requests_Exception_HTTP_400;
 
 /**
  * Class Requests
@@ -140,7 +141,12 @@ class Requests implements DriverInterface, QueryDriverInterface
             return false;
         }
 
-        $this->response->throw_for_status();
+        try {
+            $this->response->throw_for_status();
+        } catch (Requests_Exception_HTTP_400 $e) {
+            $message = "Bad Request: " . json_decode($e->getData()->body)->error;
+            throw new Requests_Exception_HTTP_400($message, $e->getData());
+        }
 
         return $this->response->success;
     }
