@@ -218,6 +218,21 @@ namespace InfluxDB\Test\unit\Driver {
             $driver->isSuccess();
         }
 
+        public function testIsSuccessThrowsExceptionWithResponseErrorMessage()
+        {
+            $driver = new Curl('http://localhost:8086');
+
+            static::$MOCK_INFO = ['http_code' => 401];
+            static::$MOCK_RESPONSE = '{"error":"authorization failed"}';
+            $driver->setParameters(['url' => 'write?something']);
+
+            $this->expectException(\InfluxDB\Driver\Exception::class);
+            $this->expectExceptionMessage('Request failed with HTTP Code 401: authorization failed');
+            $driver->write(['data']);
+
+            $driver->isSuccess();
+        }
+
         public function testRequestThrowsExceptionWhenResultIsMissing()
         {
             $driver = new Curl('http://localhost:8086');
