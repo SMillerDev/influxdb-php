@@ -9,6 +9,7 @@ use InfluxDB\Driver\Exception as DriverException;
 use InfluxDB\Driver\Guzzle;
 use InfluxDB\Driver\QueryDriverInterface;
 use InfluxDB\Driver\UDP;
+use InfluxDB\Precision\InfluxDBPrecision;
 
 /**
  * Class Client
@@ -142,12 +143,14 @@ class Client
      * Use the given database
      *
      * @param  string $name
+     * @param InfluxDBPrecision $precision optional precision class
+     *
      * @return Database
      * @throws \InvalidArgumentException
      */
-    public function selectDB($name)
+    public function selectDB($name, InfluxDBPrecision $precision = NULL)
     {
-        return new Database($name, $this);
+        return $precision === null ? new Database($name, $this) : new Database($name, $this, $precision);
     }
 
     /**

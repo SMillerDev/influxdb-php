@@ -3,6 +3,9 @@
 namespace InfluxDB;
 
 use Exception;
+use InfluxDB\Precision\InfluxDBPrecision;
+use InfluxDB\Precision\InfluxDBV1Precision;
+use InfluxDB\Precision\InfluxDBV2Precision;
 use InvalidArgumentException;
 use InfluxDB\Exception as InfluxDBException;
 use InfluxDB\Database\Exception as DatabaseException;
@@ -30,24 +33,52 @@ class Database
     protected $client;
 
     /**
-     * Precision constants
+     * Class determining precision information
+     * @var InfluxDBPrecision
      */
-    const PRECISION_NANOSECONDS = 'n';
-    const PRECISION_MICROSECONDS = 'u';
-    const PRECISION_MILLISECONDS = 'ms';
-    const PRECISION_SECONDS = 's';
-    const PRECISION_MINUTES = 'm';
-    const PRECISION_HOURS = 'h';
+    protected $precision;
+
+    /**
+     * @deprecated Use InfluxDBPrecision classes instead
+     * @var string
+     */
+    public const PRECISION_NANOSECONDS = InfluxDBV1Precision::PRECISION_NANOSECONDS;
+    /**
+     * @deprecated Use InfluxDBPrecision classes instead
+     * @var string
+     */
+    public const PRECISION_MICROSECONDS = InfluxDBV1Precision::PRECISION_MICROSECONDS;
+    /**
+     * @deprecated Use InfluxDBPrecision classes instead
+     * @var string
+     */
+    public const PRECISION_MILLISECONDS = InfluxDBV1Precision::PRECISION_MILLISECONDS;
+    /**
+     * @deprecated Use InfluxDBPrecision classes instead
+     * @var string
+     */
+    public const PRECISION_SECONDS = InfluxDBV1Precision::PRECISION_SECONDS;
+    /**
+     * @deprecated Use InfluxDBPrecision classes instead
+     * @var string
+     */
+    public const PRECISION_MINUTES = InfluxDBV1Precision::PRECISION_MINUTES;
+    /**
+     * @deprecated Use InfluxDBPrecision classes instead
+     * @var string
+     */
+    public const PRECISION_HOURS = InfluxDBV1Precision::PRECISION_HOURS;
 
     /**
      * Construct a database object
      *
-     * @param string $name
-     * @param Client $client
+     * @param string            $name
+     * @param Client            $client
+     * @param InfluxDBPrecision $precision optional precision class
      *
      * @throws \InvalidArgumentException
      */
-    public function __construct($name, Client $client)
+    public function __construct($name, Client $client, InfluxDBPrecision $precision = NULL)
     {
         if (empty($name)) {
             throw new InvalidArgumentException('No database name provided');
@@ -55,6 +86,7 @@ class Database
 
         $this->name = (string) $name;
         $this->client = $client;
+        $this->precision = $precision ?? new InfluxDBV1Precision();
     }
 
     /**
@@ -130,7 +162,7 @@ class Database
      * @return bool
      * @throws \InfluxDB\Exception
      */
-    public function writePoints(array $points, $precision = self::PRECISION_NANOSECONDS, $retentionPolicy = null)
+    public function writePoints(array $points, $precision = null, $retentionPolicy = null)
     {
         $payload = array_map(
             function (Point $point) {
@@ -139,7 +171,7 @@ class Database
             $points
         );
 
-        return $this->writePayload($payload, $precision, $retentionPolicy);
+        return $this->writePayload($payload, $precision ?? $this->precision::PRECISION_NANOSECONDS, $retentionPolicy);
     }
 
     /**
@@ -159,11 +191,11 @@ class Database
      * @return bool
      * @throws \InfluxDB\Exception
      */
-    public function writePayload($payload, $precision = self::PRECISION_NANOSECONDS, $retentionPolicy = null)
+    public function writePayload($payload, $precision = null, $retentionPolicy = null)
     {
         try {
             $parameters = [
-                'url' => sprintf('write?db=%s&precision=%s', $this->name, $precision),
+                'url' => sprintf('write?db=%s&precision=%s', $this->name, $precision ?? $this->precision::PRECISION_NANOSECONDS),
                 'database' => $this->name,
                 'method' => 'post'
             ];
