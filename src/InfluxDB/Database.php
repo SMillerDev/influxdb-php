@@ -34,7 +34,7 @@ class Database
 
     /**
      * Class determining precision information
-     * @var InfluxDBPrecision
+     * @var InfluxDBV1Precision|InfluxDBV2Precision
      */
     protected $precision;
 
@@ -78,7 +78,7 @@ class Database
      *
      * @throws \InvalidArgumentException
      */
-    public function __construct($name, Client $client, InfluxDBPrecision $precision = NULL)
+    public function __construct($name, Client $client)
     {
         if (empty($name)) {
             throw new InvalidArgumentException('No database name provided');
@@ -86,7 +86,7 @@ class Database
 
         $this->name = (string) $name;
         $this->client = $client;
-        $this->precision = $precision ?? new InfluxDBV1Precision();
+        $this->precision = $this->client->getPrecision();
     }
 
     /**
@@ -154,7 +154,7 @@ class Database
      * data into InfluxDB.
      *
      * @param  Point[]     $points           Array of Point objects
-     * @param  string      $precision        The timestamp precision (defaults to nanoseconds).
+     * @param  string|null $precision        The timestamp precision (defaults to nanoseconds).
      * @param  string|null $retentionPolicy  Specifies an explicit retention policy to use when writing all points. If
      *                                       not set, the default retention period will be used. This is only
      *                                       applicable for the Guzzle driver. The UDP driver utilizes the endpoint
@@ -162,7 +162,7 @@ class Database
      * @return bool
      * @throws \InfluxDB\Exception
      */
-    public function writePoints(array $points, $precision = null, $retentionPolicy = null)
+    public function writePoints(array $points, ?string $precision = null, ?string $retentionPolicy = null)
     {
         $payload = array_map(
             function (Point $point) {
@@ -182,16 +182,16 @@ class Database
      *   2) Inserting very large set of points into a measurement where looping via array_map() actually
      *      hurts performance as the payload may be calculated in advance by caller.
      *
-     * @param  string|array  $payload          InfluxDB payload (Or array of payloads) that conform to the Line syntax.
-     * @param  string        $precision        The timestamp precision (defaults to nanoseconds).
-     * @param  string|null   $retentionPolicy  Specifies an explicit retention policy to use when writing all points. If
+     * @param  string|array $payload          InfluxDB payload (Or array of payloads) that conform to the Line syntax.
+     * @param  string|null  $precision        The timestamp precision (defaults to nanoseconds).
+     * @param  string|null  $retentionPolicy  Specifies an explicit retention policy to use when writing all points. If
      *                                         not set, the default retention period will be used. This is only
      *                                         applicable for the Guzzle driver. The UDP driver utilizes the endpoint
      *                                         configuration defined in the server's influxdb configuration file.
      * @return bool
      * @throws \InfluxDB\Exception
      */
-    public function writePayload($payload, $precision = null, $retentionPolicy = null)
+    public function writePayload($payload, ?string $precision = null, ?string $retentionPolicy = null)
     {
         try {
             $parameters = [

@@ -10,6 +10,8 @@ use InfluxDB\Driver\Guzzle;
 use InfluxDB\Driver\QueryDriverInterface;
 use InfluxDB\Driver\UDP;
 use InfluxDB\Precision\InfluxDBPrecision;
+use InfluxDB\Precision\InfluxDBV1Precision;
+use InfluxDB\Precision\InfluxDBV2Precision;
 
 /**
  * Class Client
@@ -89,6 +91,11 @@ class Client
      */
     protected $driver;
 
+    /**
+     * @var InfluxDBV1Precision|InfluxDBV2Precision
+     */
+    protected $precision;
+
 
     /**
      * Stores the last query that ran
@@ -106,6 +113,7 @@ class Client
      * @param bool   $verifySSL
      * @param float  $timeout
      * @param float  $connectTimeout
+     * @param bool   $v2
      */
     public function __construct(
         $host,
@@ -115,7 +123,8 @@ class Client
         $ssl = false,
         $verifySSL = false,
         $timeout = 0,
-        $connectTimeout = 0
+        $connectTimeout = 0,
+        $v2_instance = false
     ) {
         $this->host = (string) $host;
         $this->port = (int) $port;
@@ -124,6 +133,7 @@ class Client
         $this->timeout = (float) $timeout;
         $this->connectTimeout = (float) $connectTimeout;
         $this->verifySSL = (bool) $verifySSL;
+        $this->precision = (bool) $v2_instance ? new InfluxDBV2Precision() : new InfluxDBV1Precision();
 
         if ($ssl) {
             $this->scheme = 'https';
@@ -137,20 +147,30 @@ class Client
         $this->driver = null;
 
         $this->admin = new Admin($this);
+
     }
 
     /**
      * Use the given database
      *
-     * @param  string $name
-     * @param InfluxDBPrecision $precision optional precision class
+     * @param string $name
      *
      * @return Database
      * @throws \InvalidArgumentException
      */
-    public function selectDB($name, InfluxDBPrecision $precision = NULL)
+    public function selectDB($name)
     {
-        return $precision === null ? new Database($name, $this) : new Database($name, $this, $precision);
+        return new Database($name, $this);
+    }
+
+    /**
+     * Get the precision type for the InfluxDB API
+     *
+     * @return InfluxDBV2Precision|InfluxDBV1Precision
+     */
+    public function getPrecision()
+    {
+        return $this->precision;
     }
 
     /**
